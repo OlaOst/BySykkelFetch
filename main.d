@@ -1,4 +1,5 @@
 import std.conv;
+import std.datetime;
 import std.net.curl;
 import std.stdio;
 import std.xml;
@@ -6,14 +7,28 @@ import std.xml;
 
 void main(string args[])
 {
-  string racks = cast(string)get("http://smartbikeportal.clearchannel.no/public/mobapp/maq.asmx/getRacks");
+  string racksResponse = cast(string)get("http://smartbikeportal.clearchannel.no/public/mobapp/maq.asmx/getRacks");
+
+  auto racksRaw = "<stations>" ~ decode(getResponseData(racksResponse)) ~ "</stations>";
+  auto xml = new Document(racksRaw);
   
-  writeln(getRack(1));
-  writeln(getRack(2));
-  writeln(getRack(3));
-  writeln(getRack(4));
-  writeln(getRack(5));
-  writeln(getRack(6));
+  int[] rackIds;
+  foreach (element; xml.elements)
+  {
+    if (element.tag.name == "station")
+    {
+      rackIds ~= to!int(to!string(element.items[0]));
+    }
+  }
+  
+  auto timeStamp = Clock.currTime.toISOString();  
+  
+  auto file = File(timeStamp ~ ".txt", "w");
+  
+  foreach (rackId; rackIds)
+  {
+    file.writeln(to!string(getRack(rackId)));
+  }
 }
 
 
